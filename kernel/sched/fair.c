@@ -9084,7 +9084,7 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		sgs->sum_nr_running += nr_running;
 
 		if (nr_running > 1)
-			*sg_status |= SG_OVERLOAD;
+			*sg_status |= SG_OVERLOADED;
 
 		if (cpu_overutilized(i))
 			*sg_status |= SG_OVERUTILIZED;
@@ -9109,7 +9109,7 @@ static inline void update_sg_lb_stats(struct lb_env *env,
 		if (env->sd->flags & SD_ASYM_CPUCAPACITY &&
 		    sgs->group_misfit_task_load < rq->misfit_task_load) {
 			sgs->group_misfit_task_load = rq->misfit_task_load;
-			*sg_status |= SG_OVERLOAD;
+			*sg_status |= SG_OVERLOADED;
 		}
 	}
 
@@ -9740,7 +9740,7 @@ next_group:
 
 	if (!env->sd->parent) {
 		/* update overload indicator if we are at root domain */
-		set_rd_overloaded(env->dst_rq->rd, sg_status & SG_OVERLOAD);
+		set_rd_overloaded(env->dst_rq->rd, sg_status & SG_OVERLOADED);
 
 		/* Update over-utilization (tipping point, U >= 0) indicator */
 		set_rd_overutilized_status(env->dst_rq->rd,
