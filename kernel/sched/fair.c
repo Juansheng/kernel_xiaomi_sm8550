@@ -7173,6 +7173,9 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		eenv.cpu_cap = cpu_thermal_cap;
 		eenv.pd_cap = 0;
 
+		if (capacity_orig_of(cpu) < p_util_min)
+			continue;
+
 		for_each_cpu(cpu, cpus) {
 			struct rq *rq = cpu_rq(cpu);
 
