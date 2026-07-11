@@ -7117,6 +7117,11 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 	unsigned long p_util_max = uclamp_is_used() ? uclamp_eff_value(p, UCLAMP_MAX) : 1024;
 	struct root_domain *rd = this_rq()->rd;
 	int cpu, best_energy_cpu, target = -1;
+	int best_idle_cpu, max_spare_cap_cpu_ls = prev_cpu;
+	bool latency_sensitive = false;
+	unsigned long max_spare_cap_ls = 0;
+	unsigned int min_exit_lat = UINT_MAX;
+	struct cpuidle_state *idle;
 	struct sched_domain *sd;
 	struct perf_domain *pd;
 	struct energy_env eenv;
@@ -7151,6 +7156,8 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		goto unlock;
 
 	eenv_task_busy_time(&eenv, p, prev_cpu);
+
+	latency_sensitive = uclamp_latency_sensitive(p);
 
 	for (; pd; pd = pd->next) {
 		unsigned long util_min = p_util_min, util_max = p_util_max;
@@ -7228,7 +7235,24 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 				max_spare_cap = cpu_cap;
 				max_spare_cap_cpu = cpu;
 			}
+
+			if (!latency_sensitive)
+				continue;
+
+			if (idle_cpu(cpu)) {
+				idle = idle_get_state(cpu_rq(cpu));
+				if (idle && idle->exit_latency < min_exit_lat) {
+					min_exit_lat = idle->exit_latency;
+					best_idle_cpu = cpu;
+				}
+			} else if (cpu_cap > max_spare_cap_ls) {
+				max_spare_cap_ls = cpu_cap;
+				max_spare_cap_cpu_ls = cpu;
+			}
 		}
+
+		if (latency_sensitive)
+			continue;
 
 		if (max_spare_cap_cpu < 0 && prev_spare_cap < 0)
 			continue;
@@ -7263,6 +7287,9 @@ static int find_energy_efficient_cpu(struct task_struct *p, int prev_cpu, int sy
 		}
 	}
 	rcu_read_unlock();
+
+	if (latency_sensitive)
+		return best_idle_cpu >= 0 ? best_idle_cpu : max_spare_cap_cpu_ls;
 
 	if (best_delta < prev_delta)
 		target = best_energy_cpu;
