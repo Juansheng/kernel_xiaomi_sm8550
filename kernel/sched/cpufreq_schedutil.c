@@ -221,20 +221,10 @@ static unsigned int get_next_freq(struct sugov_policy *sg_policy,
 }
 
 unsigned long sugov_effective_cpu_perf(int cpu, unsigned long actual,
-				 unsigned long min,
-				 unsigned long max)
+				       unsigned long min,
+				       unsigned long max)
 {
-	/* Add dvfs headroom to actual utilization */
-	actual = map_util_perf(actual);
-	/* Actually we don't need to target the max performance */
-	if (actual < max)
-		max = actual;
-
-	/*
-	 * Ensure at least minimum performance while providing more compute
-	 * capacity when possible.
-	 */
-	return max(min, max);
+	return max(min, min(actual, max));
 }
 
 static void sugov_get_util(struct sugov_cpu *sg_cpu, unsigned long boost)
