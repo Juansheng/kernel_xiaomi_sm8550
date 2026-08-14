@@ -47,7 +47,7 @@ void cass_cpu_util(struct cass_cpu_cand *c, int this_cpu, bool sync)
 	/* Get this CPU's utilization from CFS tasks */
 	c->util = READ_ONCE(cfs_rq->avg.util_avg);
 	if (sched_feat(UTIL_EST)) {
-		est = READ_ONCE(cfs_rq->avg.util_est.enqueued);
+		est = READ_ONCE(cfs_rq->avg.util_est);
 		if (est > c->util) {
 			/* Don't deduct @current's util from estimated util */
 			sync = false;
@@ -215,7 +215,7 @@ static int cass_best_cpu(struct task_struct *p, int prev_cpu, bool sync, bool rt
 			 * candidates.
 			 */
 			if (!has_idle &&
-			    uc_min <= arch_scale_min_freq_capacity(cpu) &&
+			    uc_min <= (curr->cap_orig / 5) &&
 			    !cass_prime_cpu(curr)) {
 				/* Discard any previous non-idle candidate */
 				best = curr;
